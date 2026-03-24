@@ -8,7 +8,7 @@
             "version": "3.12"
         },
         "ghcr.io/devcontainers/features/common-utils:1": {
-            "configureZshAsDefaultShell": true
+            "configureZshAsDefaultShell": false
         }
     },
 
@@ -47,7 +47,5 @@
     // Ensure the specify-cli is in the PATH for the terminal
     "remoteEnv": {
         "PATH": "${containerEnv:PATH}:${homeDir}/.local/bin"
-    },
-
-    "remoteUser": "vscode"
+    }
 }
