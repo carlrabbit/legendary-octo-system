@@ -1,0 +1,53 @@
+{
+    "name": "dotnet-10-spec-kit-lib",
+    "image": "mcr.microsoft.com/devcontainers/dotnet:10.0",
+    
+    // Install Spec-Kit prerequisites: Python and uv
+    "features": {
+        "ghcr.io/devcontainers/features/python:1": {
+            "version": "3.12"
+        },
+        "ghcr.io/devcontainers/features/common-utils:1": {
+            "configureZshAsDefaultShell": true
+        }
+    },
+
+    // Standard VS Code settings for .NET 10 & Spec-Kit
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                // Core .NET Development
+                "ms-dotnettools.csdevkit",
+                "ms-dotnettools.csharp",
+                "ms-dotnettools.vscode-dotnet-runtime",
+                
+                // GitHub & AI Collaboration
+                "GitHub.copilot",
+                "GitHub.copilot-chat",
+                "GitHub.vscode-pull-request-github",
+                
+                // Productivity & Quality
+                //"eamodio.gitlens",
+                // "usernamehw.errorlens",
+                //"streetsidesoftware.code-spell-checker",
+                // "tamasfe.even-better-toml",
+                "ms-azuretools.vscode-docker"
+            ],
+            "settings": {
+                "dotnet.telemetry.enabled": false,
+                "csharp.experimental.debug.showFullMessages": true,
+                "editor.formatOnSave": true
+            }
+        }
+    },
+
+    // Setup Spec-Kit after the container is created
+    "postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && . $HOME/.cargo/env && uv tool install specify-cli --from git+https://github.com/github/spec-kit.git",
+
+    // Ensure the specify-cli is in the PATH for the terminal
+    "remoteEnv": {
+        "PATH": "${containerEnv:PATH}:${homeDir}/.local/bin"
+    },
+
+    "remoteUser": "vscode"
+}
