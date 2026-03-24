@@ -42,10 +42,10 @@
     },
 
     // Setup Spec-Kit after the container is created
-    "postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && . $HOME/.cargo/env && uv tool install specify-cli --from git+https://github.com/github/spec-kit.git",
+   // "postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && . $HOME/.cargo/env && uv tool install specify-cli --from git+https://github.com/github/spec-kit.git",
 
     // Ensure the specify-cli is in the PATH for the terminal
-    "remoteEnv": {
-        "PATH": "${containerEnv:PATH}:${homeDir}/.local/bin"
-    }
+    //"remoteEnv": {
+    //    "PATH": "${containerEnv:PATH}:${homeDir}/.local/bin"
+  //  }
 }
