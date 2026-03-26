@@ -3,7 +3,7 @@ This is a .dotnet 10 library for generating LL(1) parser generators via source g
 
 ## Example
 
-ˋˋˋc#
+ˋˋˋC#
 [Lexer]
 public partial class MyLexer {
   
