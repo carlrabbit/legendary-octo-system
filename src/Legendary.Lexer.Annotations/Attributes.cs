@@ -13,6 +13,12 @@ namespace Legendary.Lexer.Annotations
     public sealed class TokenAttribute : Attribute
     {
         public string Pattern { get; }
+        // Optional explicit kind: "Keyword", "Identifier", "Number", "String", "Operator", "Skip", "Regex"
+        public string Kind { get; set; }
+        // Optional delimiter for string literals (e.g. '"')
+        public char Delimiter { get; set; }
+        // Optional escape character for string literals (e.g. '\\')
+        public char EscapeChar { get; set; }
         public bool IsSkip { get; set; }
         public int Priority { get; set; } = 0;
         public TokenAttribute(string pattern) => Pattern = pattern;

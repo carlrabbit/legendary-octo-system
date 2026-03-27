@@ -23,9 +23,9 @@
 **Testing**: `dotnet test` with xUnit; snapshot tests via Verify or equivalent  
 **Target Platform**: .NET 10 class library distributed as NuGet package  
 **Project Type**: library / source-generator  
-**Performance Goals**: Incremental generator MUST not degrade IDE response time — NEEDS CLARIFICATION if benchmarks required  
+**Performance Goals**: Target processing of 100,000 characters in under 500 ms on standard developer hardware for the generated lexer (see `research.md`).  
 **Constraints**: Zero runtime dependencies; nullable reference types enabled; XML docs on all public API  
-**Scale/Scope**: NEEDS CLARIFICATION — number of grammars / token types expected
+**Scale/Scope**: Support up to 256 distinct token types per grammar in v1; larger grammars are best-effort and documented in `research.md`.
 
 ## Constitution Check
 

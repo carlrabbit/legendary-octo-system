@@ -5,6 +5,12 @@
 **Status**: Draft  
 **Input**: User description: "Create a lexer generator for LL(1) grammars. The lexer splits transforms a multi line string or file into a list of tokens. The lexer is able to trace tokens back to the input text and gives detailed error information upon tokenization errors."
 
+## Clarifications
+
+### Session 2026-03-27
+
+- Q: How should the lexer API behave when given `null` input? → A: Throw `ArgumentNullException`.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Define Token Rules and Receive a Generated Lexer (Priority: P1)
@@ -60,7 +66,7 @@ When the lexer encounters an unrecognized character sequence, it produces a stru
 
 ### Edge Cases
 
-- What happens when the input is `null`? (expected: argument exception before tokenization begins)
+- What happens when the input is `null`? (expected: throw `ArgumentNullException` before tokenization begins)
 - How does the lexer handle a file path that does not exist or cannot be read?
 - How are keywords distinguished from identifiers when the keyword text also matches the identifier pattern? (priority ordering)
 - What is the maximum supported input length?
