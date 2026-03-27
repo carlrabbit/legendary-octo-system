@@ -190,6 +190,9 @@ namespace Legendary.LexerGenerator
             sb.Append("EndOfInput }");
             sb.Append("\n\n");
 
+            // Error mode enum: controls whether the lexer fails fast or collects all errors
+            sb.Append($"    public enum ErrorMode {{ FailFast = 0, CollectAll = 1 }}\n\n");
+
             sb.Append($@"    public readonly struct {spanName} {{ public readonly int Line; public readonly int Column; public readonly int Offset; public readonly int Length; public {spanName}(int line,int col,int off,int len){{Line=line;Column=col;Offset=off;Length=len;}} }}
 
             public readonly struct {tokenName} {{ public readonly {enumName} Type; public readonly System.ReadOnlyMemory<char> Text; public readonly {spanName} Span; public {tokenName}({enumName} t, System.ReadOnlyMemory<char> text, {spanName} s){{Type=t;Text=text;Span=s;}} public string TextAsString() => new string(Text.Span); }}
@@ -231,8 +234,9 @@ namespace Legendary.LexerGenerator
             var errorName = targetClass.Name + "TokenizationError";
             var resultName = targetClass.Name + "LexerResult";
 
-            sb.Append($"        public {resultName} Tokenize(string input, bool collectAllErrors = false)\n        {{\n");
+            sb.Append($"        public {resultName} Tokenize(string input, ErrorMode errorMode = ErrorMode.FailFast)\n        {{\n");
             sb.Append("            if (input is null) throw new System.ArgumentNullException(nameof(input));\n");
+            sb.Append("            bool collectAllErrors = errorMode == ErrorMode.CollectAll;\n");
             sb.Append($"            var tokens = new System.Collections.Generic.List<{tokenName}>();\n            var errors = new System.Collections.Generic.List<{errorName}>();\n            int pos = 0; int line=1; int col=1;\n            var src = input; int n = src.Length;\n\n");
 
             // Precompute whether patterns are literals and compile regexes for non-literals.
@@ -329,7 +333,8 @@ namespace Legendary.LexerGenerator
                     sb.Append($"                        var span = new {targetClass.Name}SourceSpan(line, col, pos, len); tokens.Add(new {targetClass.Name}Token({targetClass.Name}TokenType.{t.Name}, txt, span));\n");
                 }
 
-                sb.Append($"                        for (int k = 0; k < len; k++) {{ if (txt.Span[k] == '\\n') {{ line++; col = 1; }} else {{ col++; }} }}\n");
+                sb.Append($"                        for (int k = 0; k < len; k++) {{ char cc = txt.Span[k]; if (cc == '\\r') {{ if (k + 1 < len && txt.Span[k+1] == '\\n') {{ line++; col = 1; k++; continue; }} else {{ line++; col = 1; continue; }} }} if (cc == '\\n') {{ line++; col = 1; continue; }} col++; }}\n");
+                sb.Append($"                        int _idx = 0; while (_idx < len) {{ char cc = txt.Span[_idx]; if (cc == '\\r') {{ if (_idx + 1 < len && txt.Span[_idx+1] == '\\n') {{ line++; col = 1; _idx += 2; continue; }} else {{ line++; col = 1; _idx++; continue; }} }} if (cc == '\\n') {{ line++; col = 1; _idx++; continue; }} if (char.IsHighSurrogate(cc) && _idx + 1 < len && char.IsLowSurrogate(txt.Span[_idx+1])) {{ col++; _idx += 2; }} else {{ col++; _idx++; }} }}\n");
                 sb.Append($"                        pos += len; break; }}\n");
             }
 
@@ -340,7 +345,13 @@ namespace Legendary.LexerGenerator
         }}
 ");
 
-            sb.Append($"        public {targetClass.Name}LexerResult TokenizeFile(string path, bool collectAllErrors = false)\n        {{\n            if (path is null) throw new System.ArgumentNullException(nameof(path));\n            var text = System.IO.File.ReadAllText(path);\n            return Tokenize(text, collectAllErrors);\n        }}\n\n");
+            // Back-compat overload taking a bool to indicate collect-all-errors
+            sb.Append($"        public {resultName} Tokenize(string input, bool collectAllErrors = false) => Tokenize(input, collectAllErrors ? ErrorMode.CollectAll : ErrorMode.FailFast);\n\n");
+
+            sb.Append($"        public {targetClass.Name}LexerResult TokenizeFile(string path, ErrorMode errorMode = ErrorMode.FailFast)\n        {{\n            if (path is null) throw new System.ArgumentNullException(nameof(path));\n            var text = System.IO.File.ReadAllText(path);\n            return Tokenize(text, errorMode);\n        }}\n\n");
+
+            // Back-compat overload for TokenizeFile accepting a bool
+            sb.Append($"        public {resultName} TokenizeFile(string path, bool collectAllErrors = false) => TokenizeFile(path, collectAllErrors ? ErrorMode.CollectAll : ErrorMode.FailFast);\n\n");
 
             // Emit token metadata as a nested static class so consumers can query attribute-driven values
             sb.Append($"        public static class {targetClass.Name}TokenMetadata\n        {{\n");
@@ -369,9 +380,9 @@ namespace Legendary.LexerGenerator
             sb.Append("            public static readonly char[] EscapeByType = new char[] { ");
             foreach (var t in tokens)
             {
-                var ch = t.EscapeChar == '\0' ? '\0' : t.EscapeChar;
-                var lit = ch == '\\' ? "'\\\\'" : "'" + ch.ToString().Replace("'", "\\'") + "'";
-                sb.Append(lit).Append(", ");
+                var ch2 = t.EscapeChar == '\0' ? '\0' : t.EscapeChar;
+                var lit2 = ch2 == '\\' ? "'\\\\'" : "'" + ch2.ToString().Replace("'", "\\'") + "'";
+                sb.Append(lit2).Append(", ");
             }
             sb.Append("'\\0' };\n");
 

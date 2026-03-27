@@ -10,6 +10,7 @@
 ### Session 2026-03-27
 
 - Q: How should the lexer API behave when given `null` input? → A: Throw `ArgumentNullException`.
+ - Q: What type should generated token `Text` use? → A: Hybrid: store as `ReadOnlyMemory<char>` with a `TextAsString()` helper for easy string conversion.
 
 ## User Scenarios & Testing *(mandatory)*
 

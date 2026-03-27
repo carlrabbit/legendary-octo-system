@@ -48,7 +48,9 @@ namespace Legendary.LexerGenerator.Tests.LexerRuntimeTests
                             if (esc) { esc = false; j++; continue; }
                             if (cc == '\\') { esc = true; j++; continue; }
                             if (cc == '"') { j++; closed = true; break; }
-                            if (cc == '\n') { j++; line++; col = 1; continue; }
+                            // handle CRLF and LF inside strings (advance scan position; update line/col later)
+                            if (cc == '\r') { if (j + 1 < n && input[j + 1] == '\n') { j += 2; continue; } else { j++; continue; } }
+                            if (cc == '\n') { j++; continue; }
                             j++;
                         }
                         if (!closed)
@@ -136,11 +138,20 @@ namespace Legendary.LexerGenerator.Tests.LexerRuntimeTests
 
                     if (bestIndex == -1)
                     {
-                        int errLen = Math.Min(1, n - pos);
-                        string text = input.Substring(pos, errLen);
+                        int errLen = 1;
+                        if (pos < n)
+                        {
+                            char c0 = input[pos];
+                            if (c0 == '\r' && pos + 1 < n && input[pos + 1] == '\n') errLen = 2;
+                            else if (char.IsHighSurrogate(c0) && pos + 1 < n && char.IsLowSurrogate(input[pos + 1])) errLen = 2;
+                            else errLen = 1;
+                        }
+                        string text = input.Substring(pos, Math.Min(errLen, n - pos));
                         errors.Add(new Error(line, col, pos, errLen, text, "Unrecognized input"));
                         if (!collectAllErrors) return (tokens.ToArray(), errors.ToArray());
-                        if (text == "\n") { line++; col = 1; } else col++;
+                        if (errLen == 2 && input[pos] == '\r' && pos + 1 < n && input[pos + 1] == '\n') { line++; col = 1; }
+                        else if (pos < n && input[pos] == '\n') { line++; col = 1; }
+                        else { col++; }
                         pos += errLen; continue;
                     }
 
@@ -150,7 +161,7 @@ namespace Legendary.LexerGenerator.Tests.LexerRuntimeTests
                     {
                         tokens.Add(new Token(rule.Name, txt, line, col, pos, bestLen));
                     }
-                    for (int k = 0; k < bestLen; k++) { if (input[pos + k] == '\n') { line++; col = 1; } else col++; }
+                    int _idx = 0; while (_idx < bestLen) { char cc = input[pos + _idx]; if (cc == '\r') { if (_idx + 1 < bestLen && input[pos + _idx + 1] == '\n') { line++; col = 1; _idx += 2; continue; } else { line++; col = 1; _idx++; continue; } } if (cc == '\n') { line++; col = 1; _idx++; continue; } if (char.IsHighSurrogate(cc) && _idx + 1 < bestLen && char.IsLowSurrogate(input[pos + _idx + 1])) { col++; _idx += 2; } else { col++; _idx++; } }
                     pos += bestLen;
                 }
                 return (tokens.ToArray(), errors.ToArray());
@@ -256,6 +267,53 @@ namespace Legendary.LexerGenerator.Tests.LexerRuntimeTests
             Assert.Equal(2, tokens.Length);
             Assert.Equal("αβγ", tokens[0].Text);
             Assert.Equal("δεζ", tokens[1].Text);
+        }
+
+        [Fact]
+        public void Surrogate_Pair_Position_Tracking()
+        {
+            var rules = new (string, string, bool, int, string)[] {
+                ("Id", "[A-Za-z_][A-Za-z0-9_]*", false, 0, "Identifier"),
+                ("Emoji", "\U0001F60A", false, 0, "Literal")
+            };
+            var lexer = new TestLexer(rules);
+            string input = "a😊b"; // '😊' is a surrogate pair (length 2)
+            var (tokens, errors) = lexer.Tokenize(input, collectAllErrors: true);
+            Assert.Empty(errors);
+            Assert.Equal(3, tokens.Length);
+            Assert.Equal("a", tokens[0].Text);
+            Assert.Equal(1, tokens[0].Line);
+            Assert.Equal(1, tokens[0].Column);
+            Assert.Equal(0, tokens[0].Offset);
+            Assert.Equal(1, tokens[0].Length);
+
+            Assert.Equal("😊", tokens[1].Text);
+            Assert.Equal(1, tokens[1].Line);
+            Assert.Equal(2, tokens[1].Column); // surrogate pair counts as one column
+            Assert.Equal(1, tokens[1].Offset); // code unit offset
+            Assert.Equal(2, tokens[1].Length); // surrogate pair length in chars
+
+            Assert.Equal("b", tokens[2].Text);
+            Assert.Equal(1, tokens[2].Line);
+            Assert.Equal(3, tokens[2].Column);
+            Assert.Equal(3, tokens[2].Offset);
+            Assert.Equal(1, tokens[2].Length);
+        }
+
+        [Fact]
+        public void String_With_CRLF_Preserves_LineCounts()
+        {
+            var rules = new (string, string, bool, int, string)[] {
+                ("String", "\"([^\\\"]|\\.)*\"", false, 0, "String")
+            };
+            var lexer = new TestLexer(rules);
+            string input = "\"line1\r\nline2\"";
+            var (tokens, errors) = lexer.Tokenize(input, collectAllErrors: true);
+            Assert.Empty(errors);
+            Assert.Single(tokens);
+            Assert.Equal(1, tokens[0].Line);
+            // the closing quote is on line 2, so token length spans CRLF
+            Assert.Equal(1, tokens[0].Column);
         }
     }
 }
