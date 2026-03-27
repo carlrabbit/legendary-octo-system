@@ -20,10 +20,11 @@ description: "Task list template for feature implementation"
 
 ## Path Conventions
 
-- **Single project**: `src/`, `tests/` at repository root
+- **Single project (.NET library)**: `src/<ProjectName>/`, `tests/<ProjectName>.Tests/` at
+  repository root; source generator code in `src/<ProjectName>.Generators/`
 - **Web app**: `backend/src/`, `frontend/src/`
 - **Mobile**: `api/src/`, `ios/src/` or `android/src/`
-- Paths shown below assume single project - adjust based on plan.md structure
+- Paths shown below assume single project — adjust based on plan.md structure
 
 <!-- 
   ============================================================================

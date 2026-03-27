@@ -1,50 +1,132 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+## Sync Impact Report
+- **Version change**: (none / template) → 1.0.0
+- **Modified principles**: N/A — initial ratification
+- **Added sections**: Core Principles (I–V), Technology Stack & Constraints,
+  Development Workflow, Governance
+- **Removed sections**: None
+- **Templates updated**:
+  - ✅ `.specify/templates/plan-template.md` — Constitution Check gates filled;
+    Technical Context defaults updated for C#/.NET 10
+  - ✅ `.specify/templates/tasks-template.md` — Path Conventions updated for
+    .NET project structure
+  - ✅ `.specify/templates/spec-template.md` — No changes required; template
+    is sufficiently generic
+- **Deferred TODOs**: None
+-->
+
+# Legendary Octo System Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Source-Generator-First
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+All lexer and parser code generation MUST occur at compile-time via Roslyn source
+generators. Runtime code generation is strictly prohibited. Generated output MUST be
+deterministic, reproducible, and inspectable in the build output directory.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+**Rationale**: Compile-time generation eliminates runtime overhead, enables full IDE
+tooling (IntelliSense, navigation, refactoring) over generated types, and makes the
+library safe for AOT compilation and assembly trimming scenarios.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### II. Grammar Modularity
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+Each supported grammar MUST be defined as a self-contained unit composed of exactly
+two components: a lexer specification and a parser specification. Lexer and parser
+components MUST NOT share internal mutable state or bleed implementation details
+across their boundary. New grammars MUST be addable without modifying the
+implementation of any existing grammar.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+**Rationale**: Clean lexer/parser separation allows independent testing and evolution
+of each grammar, and lets consumers reference only the grammar components they need.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### III. Attribute-Driven Public API
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+The entire public API surface MUST be expressed through C# attributes (e.g., `[Lexer]`,
+`[LexImpl]`). Consumers MUST NOT be required to inherit from a base class, implement an
+interface, or use a fluent builder for baseline usage. Generated code MUST be
+human-readable, consistently formatted, and debuggable with standard .NET tools.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+**Rationale**: Attribute-based APIs minimise consumer boilerplate, pair naturally with
+C# `partial` class patterns, and keep the generation contract visible in source control
+as plain, diffable text.
+
+### IV. Test-First (NON-NEGOTIABLE)
+
+TDD is mandatory. Tests MUST be authored and confirmed failing before any implementation
+code is written (Red). Implementation MUST make tests pass with minimal changes (Green).
+Refactoring MUST NOT break passing tests (Refactor).
+
+Source generator output MUST be covered by compilation snapshot tests that assert the
+exact generated source text. Any change to generated output that causes snapshot
+divergence MUST be treated as a breaking change and bumps the MAJOR version.
+
+**Rationale**: Parser generators are high-correctness components. Snapshot tests provide
+a regression net for the generated-code contract and are the primary mechanism for
+detecting unintended output changes.
+
+### V. Simplicity & YAGNI
+
+No speculative abstractions are permitted. Every grammar variant, API extension, or
+new feature MUST have a documented present use case before implementation begins. The
+library MUST carry zero NuGet runtime dependencies beyond the .NET Base Class Library.
+Any violation of the simplicity principle MUST be justified and recorded in the
+Complexity Tracking table of the relevant feature plan.
+
+**Rationale**: Libraries with minimal dependencies are easier to adopt, audit, and
+maintain. Keeping the API surface small and the dependency graph shallow lowers the
+barrier to contribution and review.
+
+## Technology Stack & Constraints
+
+- **Target Framework**: .NET 10 (`net10.0`). No downlevel TFM support unless explicitly
+  requested and justified.
+- **Language**: C# with `<Nullable>enable</Nullable>` and `<LangVersion>latest</LangVersion>`
+  enforced in the project file.
+- **Source Generator SDK**: `Microsoft.CodeAnalysis.CSharp` (Roslyn). All generators
+  MUST implement `IIncrementalGenerator`; the legacy `ISourceGenerator` API MUST NOT
+  be used.
+- **Distribution**: The library MUST be packaged and distributable as a standalone NuGet
+  package. Analyzer/generator assemblies are development-only (`<PrivateAssets>all</PrivateAssets>`).
+- **Documentation**: XML documentation comments MUST be present on every public API member.
+- **Runtime Dependencies**: Zero — no NuGet packages may be referenced at runtime.
+- **Code Coverage**: Core grammar modules MUST maintain ≥ 80% line coverage measured by
+  the CI pipeline.
+
+## Development Workflow
+
+- **Branching**: All work MUST occur on feature branches off `main`. Merges require a
+  Pull Request with ≥ 1 reviewer approval.
+- **Commit Style**: Conventional Commits format is required:
+  `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`.
+- **Versioning**: Semantic Versioning (MAJOR.MINOR.PATCH).
+  - MAJOR: Any breaking change to the public attribute API or to generated code structure.
+  - MINOR: New grammar support, new attribute, or backwards-compatible API addition.
+  - PATCH: Bug fixes, documentation updates, internal refactors with no visible API impact.
+- **CI Gate**: All PRs MUST pass build, unit tests, and snapshot tests before merge.
+  A failing snapshot MUST NOT be silently updated; the change MUST be explicitly reviewed.
+- **Constitution Check**: Every PR review MUST include a compliance verification against
+  this constitution. Non-compliant code MUST NOT be merged without an explicit exception
+  recorded in the plan's Complexity Tracking table.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other project practices and documentation where conflicts
+exist. When a conflict is identified, this document governs.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Amendment Procedure**:
+1. Open a PR modifying `.specify/memory/constitution.md`.
+2. State the version bump type (MAJOR/MINOR/PATCH) and rationale in the PR description.
+3. Obtain ≥ 1 reviewer approval.
+4. Propagate amendments to all dependent templates (`plan-template.md`, `spec-template.md`,
+   `tasks-template.md`) in the same PR.
+5. Update `LAST_AMENDED_DATE` to the merge date.
+
+**Versioning Policy**: Constitution version follows the same SemVer rules applied to the
+codebase. Principle additions or new sections are MINOR bumps. Wording clarifications or
+typo fixes are PATCH bumps. Principle removals or redefinitions are MAJOR bumps.
+
+**Compliance Review**: Compliance MUST be verified at every PR review. Any deferred or
+waived compliance item MUST appear in the Complexity Tracking table with justification.
+
+**Version**: 1.0.0 | **Ratified**: 2026-03-26 | **Last Amended**: 2026-03-26
