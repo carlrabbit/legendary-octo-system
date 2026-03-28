@@ -16,5 +16,5 @@ namespace ConsumerApp
     {
         // The generator will create a Tokenize method and TokenType enum
     }
-    
+
 }
