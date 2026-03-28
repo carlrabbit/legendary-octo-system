@@ -3,7 +3,7 @@ using ConsumerApp;
 
 var src = "abc 123\nxyz";
 var lexer = new MyLexer();
-var result = lexer.Tokenize(src);
+var result = lexer.Tokenize(src, collectAllErrors: false);
 Console.WriteLine("Tokens:");
 foreach (var t in result.Tokens)
 {

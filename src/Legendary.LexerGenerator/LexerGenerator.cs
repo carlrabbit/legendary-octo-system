@@ -203,7 +203,6 @@ namespace Legendary.LexerGenerator
 
 ");
 
-            sb.Append("    }\n");
             if (!string.IsNullOrEmpty(ns)) sb.Append("}\n");
             return sb.ToString();
         }

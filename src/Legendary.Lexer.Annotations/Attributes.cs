@@ -28,4 +28,35 @@ namespace Legendary.Lexer.Annotations
     public sealed class LexerEntryAttribute : Attribute
     {
     }
+
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+    public sealed class TerminalAttribute : Attribute
+    {
+        public string Rule { get; }
+        public TerminalAttribute(string rule) => Rule = rule;
+    }
+
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+    public sealed class NonTerminalAttribute : Attribute
+    {
+        public string Rule { get; }
+        public NonTerminalAttribute(string rule) => Rule = rule;
+    }
+
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+    public sealed class ParserAttribute : Attribute
+    {
+        public Type[] TerminalTypes { get; }
+        public Type[] NonTerminalTypes { get; }
+        public ParserAttribute(Type[] terminalTypes, Type[] nonTerminalTypes)
+        {
+            TerminalTypes = terminalTypes ?? Array.Empty<Type>();
+            NonTerminalTypes = nonTerminalTypes ?? Array.Empty<Type>();
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+    public sealed class ParserEntryAttribute : Attribute
+    {
+    }
 }
